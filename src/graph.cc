@@ -301,12 +301,44 @@ struct EdgeEnv : public Env {
                       vector<Node*>::const_iterator end,
                       char sep, string* result) const;
 
- private:
-  vector<string> lookups_;
+ protected:
   const Edge* edge_;
   EscapeKind escape_in_out_;
+ private:
+  vector<string> lookups_;
   bool recursive_;
 };
+
+struct EdgeEnvWithFiles : public EdgeEnv {
+  EdgeEnvWithFiles(const Edge* edge, EscapeKind escape)
+      : EdgeEnv(edge, escape) {}
+  virtual FileReader::Status AppendFile(const string& path, string* result,
+                                        string* err);
+};
+
+FileReader::Status EdgeEnvWithFiles::AppendFile(const string& path, string* result,
+                                                string* err) {
+  if (path == "")
+    return FileReader::Okay;
+  FileReader::Status s;
+  if (escape_in_out_ != kShellEscape) {
+    s = edge_->file_reader_->ReadFile(path, result, err);
+  } else {
+    string content;
+    s = edge_->file_reader_->ReadFile(path, &content, err);
+    if (s == FileReader::Okay) {
+#if _WIN32
+      GetWin32EscapedString(content, result, true);
+#else
+      GetShellEscapedString(content, result, true);
+#endif
+    }
+  }
+  if (s != FileReader::Okay) {
+    *err = "loading '" + path + "': " + *err;
+  }
+  return s;
+}
 
 bool EdgeEnv::AppendVariable(const string& var, string* result, string* err) {
   if (var == "in" || var == "in_newline") {
@@ -386,7 +418,7 @@ string Edge::GetRspFileContent() const {
 
 bool Edge::EvaluateCommand(string* err) {
   if (!command_) {
-    EdgeEnv env(this, EdgeEnv::kShellEscape);
+    EdgeEnvWithFiles env(this, EdgeEnv::kShellEscape);
     command_ = new string();
     if (!env.AppendVariable("command", command_, err)) {
       ForgetCommand();

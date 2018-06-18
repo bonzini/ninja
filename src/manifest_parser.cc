@@ -80,7 +80,7 @@ bool ManifestParser::Parse(const string& filename, const string& input,
       lexer_.UnreadToken();
       string name;
       EvalString let_value;
-      if (!ParseLet(&name, &let_value, err))
+      if (!ParseLet(&name, &let_value, false, err))
         return false;
       string value = let_value.Evaluate(env_);
       // Check ninja_required_version immediately so we can exit
@@ -130,7 +130,7 @@ bool ManifestParser::ParsePool(string* err) {
   while (lexer_.PeekToken(Lexer::INDENT)) {
     string key;
     EvalString value;
-    if (!ParseLet(&key, &value, err))
+    if (!ParseLet(&key, &value, false, err))
       return false;
 
     if (key == "depth") {
@@ -167,7 +167,7 @@ bool ManifestParser::ParseRule(string* err) {
   while (lexer_.PeekToken(Lexer::INDENT)) {
     string key;
     EvalString value;
-    if (!ParseLet(&key, &value, err))
+    if (!ParseLet(&key, &value, true, err))
       return false;
 
     if (Rule::IsReservedBinding(key)) {
@@ -192,12 +192,19 @@ bool ManifestParser::ParseRule(string* err) {
   return true;
 }
 
-bool ManifestParser::ParseLet(string* key, EvalString* value, string* err) {
+static bool HasFileSubst(const string& key)
+{
+  return key == "command" || key == "rspfile_content";
+}
+
+bool ManifestParser::ParseLet(string* key, EvalString* value, bool allow_file_subst, string* err) {
   if (!lexer_.ReadIdent(key))
     return lexer_.Error("expected variable name", err);
   if (!ExpectToken(Lexer::EQUALS, err))
     return false;
-  if (!lexer_.ReadVarValue(value, err))
+  if (!lexer_.ReadVarValue(value,
+                           allow_file_subst && HasFileSubst(*key),
+                           err))
     return false;
   return true;
 }
@@ -320,7 +327,7 @@ bool ManifestParser::ParseEdge(string* err) {
   while (has_indent_token) {
     string key;
     EvalString val;
-    if (!ParseLet(&key, &val, err))
+    if (!ParseLet(&key, &val, false, err))
       return false;
 
     env->AddBinding(key, val.Evaluate(env_));
@@ -329,6 +336,7 @@ bool ManifestParser::ParseEdge(string* err) {
 
   Edge* edge = state_->AddEdge(rule);
   edge->env_ = env;
+  edge->file_reader_ = file_reader_;
 
   string pool_name = edge->GetBinding("pool");
   if (!pool_name.empty()) {

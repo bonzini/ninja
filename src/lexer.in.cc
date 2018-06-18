@@ -202,7 +202,7 @@ bool Lexer::ReadIdent(string* out) {
   return true;
 }
 
-bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
+bool Lexer::ReadEvalString(EvalString* eval, bool path, bool allow_file_subst, string* err) {
   const char* p = ofs_;
   const char* q;
   const char* start;
@@ -250,6 +250,20 @@ bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
     "$"simple_varname {
       eval->AddSpecial(StringPiece(start + 1, p - start - 1));
       continue;
+    }
+    "${@"varname"}" {
+      if (allow_file_subst) {
+        eval->AddFileSpecial(StringPiece(start + 3, p - start - 4));
+        continue;
+      }
+      return Error("file substitutions not allowed outside command or rspfile_content", err);
+    }
+    "$@"simple_varname {
+      if (allow_file_subst) {
+        eval->AddFileSpecial(StringPiece(start + 2, p - start - 2));
+        continue;
+      }
+      return Error("file substitutions not allowed outside command or rspfile_content", err);
     }
     "$:" {
       eval->AddText(StringPiece(":", 1));

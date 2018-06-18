@@ -15,6 +15,15 @@
 #include <assert.h>
 
 #include "eval_env.h"
+#include "disk_interface.h"
+#include "util.h"
+
+FileReader::Status Env::AppendFile(const string& path, string* result,
+                                   string* err)
+{
+  *err = "internal error - file substitution not expected";
+  return FileReader::OtherError;
+}
 
 string Env::LookupVariable(const string& var) {
   string result;
@@ -124,7 +133,15 @@ bool EvalString::EvalAppend(Env* env, string* result, string* err) const {
       continue;
     }
 
-    if (!env->AppendVariable(i->first, result, err)) {
+    if (i->second == SPECIAL) {
+      if (!env->AppendVariable(i->first, result, err)) {
+        return false;
+      }
+      continue;
+    }
+
+    string val = env->LookupVariable(i->first);
+    if (env->AppendFile(val, result, err) != FileReader::Okay) {
       return false;
     }
   }
@@ -143,13 +160,19 @@ void EvalString::AddSpecial(StringPiece text) {
   parsed_.push_back(make_pair(text.AsString(), SPECIAL));
 }
 
+void EvalString::AddFileSpecial(StringPiece text) {
+  parsed_.push_back(make_pair(text.AsString(), FILE_SPECIAL));
+}
+
 string EvalString::Serialize() const {
   string result;
   for (TokenList::const_iterator i = parsed_.begin();
        i != parsed_.end(); ++i) {
     result.append("[");
-    if (i->second == SPECIAL)
+    if (i->second != RAW)
       result.append("$");
+    if (i->second == FILE_SPECIAL)
+      result.append("@");
     result.append(i->first);
     result.append("]");
   }

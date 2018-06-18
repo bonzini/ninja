@@ -77,13 +77,13 @@ struct Lexer {
   /// Returns false only on error, returned path may be empty if a delimiter
   /// (space, newline) is hit.
   bool ReadPath(EvalString* path, string* err) {
-    return ReadEvalString(path, true, err);
+    return ReadEvalString(path, true, false, err);
   }
 
   /// Read the value side of a var = value line (complete with $escapes).
   /// Returns false only on error.
-  bool ReadVarValue(EvalString* value, string* err) {
-    return ReadEvalString(value, false, err);
+  bool ReadVarValue(EvalString* value, bool allow_file_subst, string* err) {
+    return ReadEvalString(value, false, allow_file_subst, err);
   }
 
   /// Construct an error message with context.
@@ -94,7 +94,7 @@ private:
   void EatWhitespace();
 
   /// Read a $-escaped string.
-  bool ReadEvalString(EvalString* eval, bool path, string* err);
+  bool ReadEvalString(EvalString* eval, bool path, bool allow_file_subst, string* err);
 
   StringPiece filename_;
   StringPiece input_;

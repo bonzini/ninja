@@ -626,7 +626,7 @@ yy100:
   return true;
 }
 
-bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
+bool Lexer::ReadEvalString(EvalString* eval, bool path, bool allow_file_subst, string* err) {
   const char* p = ofs_;
   const char* q;
   const char* start;
@@ -688,7 +688,7 @@ bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
 	}
 	++p;
 	yych = *p;
-	goto yy140;
+	goto yy149;
 yy104:
 	{
       eval->AddText(StringPiece(start, p - start));
@@ -696,7 +696,7 @@ yy104:
     }
 yy105:
 	++p;
-	if ((yych = *p) == '\n') goto yy137;
+	if ((yych = *p) == '\n') goto yy146;
 	{
       last_token_ = start;
       return Error(DescribeLastError(), err);
@@ -716,33 +716,33 @@ yy107:
     }
 yy109:
 	yych = *++p;
-	if (yych <= '-') {
+	if (yych <= '/') {
 		if (yych <= 0x1F) {
 			if (yych <= '\n') {
 				if (yych <= '\t') goto yy112;
-				goto yy124;
+				goto yy125;
 			} else {
 				if (yych == '\r') goto yy114;
 				goto yy112;
 			}
 		} else {
-			if (yych <= '#') {
+			if (yych <= '$') {
 				if (yych <= ' ') goto yy115;
-				goto yy112;
+				if (yych <= '#') goto yy112;
+				goto yy117;
 			} else {
-				if (yych <= '$') goto yy117;
-				if (yych <= ',') goto yy112;
-				goto yy119;
+				if (yych == '-') goto yy119;
+				goto yy112;
 			}
 		}
 	} else {
 		if (yych <= 'Z') {
-			if (yych <= '9') {
-				if (yych <= '/') goto yy112;
-				goto yy119;
+			if (yych <= ':') {
+				if (yych <= '9') goto yy119;
+				goto yy121;
 			} else {
-				if (yych <= ':') goto yy121;
-				if (yych <= '@') goto yy112;
+				if (yych <= '?') goto yy112;
+				if (yych <= '@') goto yy123;
 				goto yy119;
 			}
 		} else {
@@ -751,7 +751,7 @@ yy109:
 				goto yy112;
 			} else {
 				if (yych <= 'z') goto yy119;
-				if (yych <= '{') goto yy123;
+				if (yych <= '{') goto yy124;
 				goto yy112;
 			}
 		}
@@ -771,7 +771,7 @@ yy113:
     }
 yy114:
 	yych = *++p;
-	if (yych == '\n') goto yy134;
+	if (yych == '\n') goto yy143;
 	goto yy113;
 yy115:
 	++p;
@@ -788,7 +788,7 @@ yy117:
 yy119:
 	++p;
 	yych = *p;
-	goto yy133;
+	goto yy142;
 yy120:
 	{
       eval->AddSpecial(StringPiece(start + 1, p - start - 1));
@@ -801,63 +801,135 @@ yy121:
       continue;
     }
 yy123:
-	yych = *(q = ++p);
-	if (yybm[0+yych] & 32) {
-		goto yy127;
+	yych = *++p;
+	if (yybm[0+yych] & 64) {
+		goto yy138;
 	}
 	goto yy113;
 yy124:
+	yych = *(q = ++p);
+	if (yybm[0+yych] & 32) {
+		goto yy128;
+	}
+	if (yych == '@') goto yy131;
+	goto yy113;
+yy125:
 	++p;
 	yych = *p;
 	if (yybm[0+yych] & 16) {
-		goto yy124;
+		goto yy125;
 	}
 	{
       continue;
     }
-yy127:
+yy128:
 	++p;
 	yych = *p;
 	if (yybm[0+yych] & 32) {
-		goto yy127;
+		goto yy128;
 	}
-	if (yych == '}') goto yy130;
+	if (yych == '}') goto yy136;
+yy130:
 	p = q;
 	goto yy113;
-yy130:
+yy131:
+	yych = *++p;
+	if (yych == '}') goto yy130;
+	goto yy133;
+yy132:
+	++p;
+	yych = *p;
+yy133:
+	if (yych <= 'Z') {
+		if (yych <= '/') {
+			if (yych <= ',') goto yy130;
+			if (yych <= '.') goto yy132;
+			goto yy130;
+		} else {
+			if (yych <= '9') goto yy132;
+			if (yych <= '@') goto yy130;
+			goto yy132;
+		}
+	} else {
+		if (yych <= '`') {
+			if (yych == '_') goto yy132;
+			goto yy130;
+		} else {
+			if (yych <= 'z') goto yy132;
+			if (yych != '}') goto yy130;
+		}
+	}
+	++p;
+	{
+      if (allow_file_subst) {
+        eval->AddFileSpecial(StringPiece(start + 3, p - start - 4));
+        continue;
+      }
+      return Error("file substitutions not allowed outside command or rspfile_content", err);
+    }
+yy136:
 	++p;
 	{
       eval->AddSpecial(StringPiece(start + 2, p - start - 3));
       continue;
     }
-yy132:
+yy138:
 	++p;
 	yych = *p;
-yy133:
 	if (yybm[0+yych] & 64) {
-		goto yy132;
+		goto yy138;
 	}
-	goto yy120;
-yy134:
+	{
+      if (allow_file_subst) {
+        eval->AddFileSpecial(StringPiece(start + 2, p - start - 2));
+        continue;
+      }
+      return Error("file substitutions not allowed outside command or rspfile_content", err);
+    }
+yy141:
 	++p;
 	yych = *p;
-	if (yych == ' ') goto yy134;
+yy142:
+	if (yych <= '@') {
+		if (yych <= '-') {
+			if (yych <= ',') goto yy120;
+			goto yy141;
+		} else {
+			if (yych <= '/') goto yy120;
+			if (yych <= '9') goto yy141;
+			goto yy120;
+		}
+	} else {
+		if (yych <= '_') {
+			if (yych <= 'Z') goto yy141;
+			if (yych <= '^') goto yy120;
+			goto yy141;
+		} else {
+			if (yych <= '`') goto yy120;
+			if (yych <= 'z') goto yy141;
+			goto yy120;
+		}
+	}
+yy143:
+	++p;
+	yych = *p;
+	if (yych == ' ') goto yy143;
 	{
       continue;
     }
-yy137:
+yy146:
 	++p;
 	{
       if (path)
         p = start;
       break;
     }
-yy139:
+yy148:
 	++p;
 	yych = *p;
-yy140:
+yy149:
 	if (yybm[0+yych] & 128) {
-		goto yy139;
+		goto yy148;
 	}
 	goto yy104;
 }

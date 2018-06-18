@@ -136,7 +136,7 @@ struct Edge {
 
   Edge() : rule_(NULL), pool_(NULL), env_(NULL), mark_(VisitNone),
            outputs_ready_(false), deps_missing_(false),
-           command_(NULL), rspfile_content_(NULL),
+           file_reader_(NULL), command_(NULL), rspfile_content_(NULL),
            implicit_deps_(0), order_only_deps_(0), implicit_outs_(0) {}
 
   virtual ~Edge();
@@ -172,6 +172,7 @@ struct Edge {
   VisitMark mark_;
   bool outputs_ready_;
   bool deps_missing_;
+  FileReader* file_reader_;
 
   // memoized version for logged variables
   string* command_;

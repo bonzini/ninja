@@ -21,6 +21,7 @@
 using namespace std;
 
 #include "string_piece.h"
+#include "disk_interface.h"
 
 struct Rule;
 
@@ -28,6 +29,8 @@ struct Rule;
 struct Env {
   virtual ~Env() {}
   virtual bool AppendVariable(const string& var, string* result, string* err) = 0;
+  virtual FileReader::Status AppendFile(const string& path, string* contents,
+                                        string* err);
 
   string LookupVariable(const string& var);
 };
@@ -43,13 +46,14 @@ struct EvalString {
 
   void AddText(StringPiece text);
   void AddSpecial(StringPiece text);
+  void AddFileSpecial(StringPiece text);
 
   /// Construct a human-readable representation of the parsed state,
   /// for use in tests.
   string Serialize() const;
 
 private:
-  enum TokenType { RAW, SPECIAL };
+  enum TokenType { RAW, SPECIAL, FILE_SPECIAL };
   typedef vector<pair<string, TokenType> > TokenList;
   TokenList parsed_;
 };
