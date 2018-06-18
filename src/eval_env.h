@@ -27,13 +27,16 @@ struct Rule;
 /// An interface for a scope for variable (e.g. "$foo") lookups.
 struct Env {
   virtual ~Env() {}
-  virtual string LookupVariable(const string& var) = 0;
+  virtual void AppendVariable(const string& var, string* result) = 0;
+
+  string LookupVariable(const string& var);
 };
 
 /// A tokenized string that contains variable references.
 /// Can be evaluated relative to an Env.
 struct EvalString {
   string Evaluate(Env* env) const;
+  void EvalAppend(Env* env, string* result) const;
 
   void Clear() { parsed_.clear(); }
   bool empty() const { return parsed_.empty(); }
@@ -79,7 +82,7 @@ struct BindingEnv : public Env {
   explicit BindingEnv(BindingEnv* parent) : parent_(parent) {}
 
   virtual ~BindingEnv() {}
-  virtual string LookupVariable(const string& var);
+  virtual void AppendVariable(const string& var, string* result);
 
   void AddRule(const Rule* rule);
   const Rule* LookupRule(const string& rule_name);
@@ -93,8 +96,8 @@ struct BindingEnv : public Env {
   /// 2) value set on rule, with expansion in the edge's scope
   /// 3) value set on enclosing scope of edge (edge_->env_->parent_)
   /// This function takes as parameters the necessary info to do (2).
-  string LookupWithFallback(const string& var, const EvalString* eval,
-                            Env* env);
+  void AppendWithFallback(const string& var, const EvalString* eval,
+                          Env* env, string* result);
 
 private:
   map<string, string> bindings_;

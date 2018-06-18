@@ -285,13 +285,13 @@ struct EdgeEnv : public Env {
 
   EdgeEnv(Edge* edge, EscapeKind escape)
       : edge_(edge), escape_in_out_(escape), recursive_(false) {}
-  virtual string LookupVariable(const string& var);
+  virtual void AppendVariable(const string& var, string* result);
 
   /// Given a span of Nodes, construct a list of paths suitable for a command
   /// line.
-  string MakePathList(vector<Node*>::iterator begin,
+  void AppendPathList(vector<Node*>::iterator begin,
                       vector<Node*>::iterator end,
-                      char sep);
+                      char sep, string* result);
 
  private:
   vector<string> lookups_;
@@ -300,18 +300,20 @@ struct EdgeEnv : public Env {
   bool recursive_;
 };
 
-string EdgeEnv::LookupVariable(const string& var) {
+void EdgeEnv::AppendVariable(const string& var, string* result) {
   if (var == "in" || var == "in_newline") {
     int explicit_deps_count = edge_->inputs_.size() - edge_->implicit_deps_ -
       edge_->order_only_deps_;
-    return MakePathList(edge_->inputs_.begin(),
-                        edge_->inputs_.begin() + explicit_deps_count,
-                        var == "in" ? ' ' : '\n');
+    AppendPathList(edge_->inputs_.begin(),
+                   edge_->inputs_.begin() + explicit_deps_count,
+                   var == "in" ? ' ' : '\n', result);
+    return;
   } else if (var == "out") {
     int explicit_outs_count = edge_->outputs_.size() - edge_->implicit_outs_;
-    return MakePathList(edge_->outputs_.begin(),
-                        edge_->outputs_.begin() + explicit_outs_count,
-                        ' ');
+    AppendPathList(edge_->outputs_.begin(),
+                   edge_->outputs_.begin() + explicit_outs_count,
+                   ' ', result);
+    return;
   }
 
   if (recursive_) {
@@ -325,7 +327,7 @@ string EdgeEnv::LookupVariable(const string& var) {
     }
   }
 
-  // See notes on BindingEnv::LookupWithFallback.
+  // See notes on BindingEnv::AppendWithFallback.
   const EvalString* eval = edge_->rule_->GetBinding(var);
   if (recursive_ && eval)
     lookups_.push_back(var);
@@ -333,28 +335,27 @@ string EdgeEnv::LookupVariable(const string& var) {
   // In practice, variables defined on rules never use another rule variable.
   // For performance, only start checking for cycles after the first lookup.
   recursive_ = true;
-  return edge_->env_->LookupWithFallback(var, eval, this);
+  edge_->env_->AppendWithFallback(var, eval, this, result);
 }
 
-string EdgeEnv::MakePathList(vector<Node*>::iterator begin,
+void EdgeEnv::AppendPathList(vector<Node*>::iterator begin,
                              vector<Node*>::iterator end,
-                             char sep) {
-  string result;
-  for (vector<Node*>::iterator i = begin; i != end; ++i) {
-    if (!result.empty())
-      result.push_back(sep);
+                             char sep, string* result) {
+  bool first = true;
+  for (vector<Node*>::iterator i = begin; i != end; ++i, first = false) {
+    if (!first)
+      result->push_back(sep);
     const string& path = (*i)->PathDecanonicalized();
     if (escape_in_out_ == kShellEscape) {
 #if _WIN32
-      GetWin32EscapedString(path, &result);
+      GetWin32EscapedString(path, result);
 #else
-      GetShellEscapedString(path, &result);
+      GetShellEscapedString(path, result);
 #endif
     } else {
-      result.append(path);
+      result->append(path);
     }
   }
-  return result;
 }
 
 string Edge::EvaluateCommand(bool incl_rsp_file) {

@@ -16,13 +16,18 @@
 
 #include "eval_env.h"
 
-string BindingEnv::LookupVariable(const string& var) {
+string Env::LookupVariable(const string& var) {
+  string result;
+  AppendVariable(var, &result);
+  return result;
+}
+
+void BindingEnv::AppendVariable(const string& var, string* result) {
   map<string, string>::iterator i = bindings_.find(var);
   if (i != bindings_.end())
-    return i->second;
-  if (parent_)
-    return parent_->LookupVariable(var);
-  return "";
+    result->append(i->second);
+  else if (parent_)
+    parent_->AppendVariable(var, result);
 }
 
 void BindingEnv::AddBinding(const string& key, const string& val) {
@@ -79,31 +84,34 @@ const map<string, const Rule*>& BindingEnv::GetRules() const {
   return rules_;
 }
 
-string BindingEnv::LookupWithFallback(const string& var,
-                                      const EvalString* eval,
-                                      Env* env) {
+void BindingEnv::AppendWithFallback(const string& var,
+                                    const EvalString* eval,
+                                    Env* env,
+                                    string* result) {
   map<string, string>::iterator i = bindings_.find(var);
   if (i != bindings_.end())
-    return i->second;
+    result->append(i->second);
 
-  if (eval)
-    return eval->Evaluate(env);
+  else if (eval)
+    eval->EvalAppend(env, result);
 
-  if (parent_)
-    return parent_->LookupVariable(var);
-
-  return "";
+  else if (parent_)
+    parent_->AppendVariable(var, result);
 }
 
 string EvalString::Evaluate(Env* env) const {
   string result;
+  EvalAppend(env, &result);
+  return result;
+}
+
+void EvalString::EvalAppend(Env* env, string* result) const {
   for (TokenList::const_iterator i = parsed_.begin(); i != parsed_.end(); ++i) {
     if (i->second == RAW)
-      result.append(i->first);
+      result->append(i->first);
     else
-      result.append(env->LookupVariable(i->first));
+      env->AppendVariable(i->first, result);
   }
-  return result;
 }
 
 void EvalString::AddText(StringPiece text) {
