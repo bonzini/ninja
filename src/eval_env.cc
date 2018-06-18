@@ -18,16 +18,22 @@
 
 string Env::LookupVariable(const string& var) {
   string result;
-  AppendVariable(var, &result);
+  string err;
+  AppendVariable(var, &result, &err);
   return result;
 }
 
-void BindingEnv::AppendVariable(const string& var, string* result) {
+bool BindingEnv::AppendVariable(const string& var, string* result, string* err) {
   map<string, string>::iterator i = bindings_.find(var);
-  if (i != bindings_.end())
+  if (i != bindings_.end()) {
     result->append(i->second);
-  else if (parent_)
-    parent_->AppendVariable(var, result);
+    return true;
+  }
+
+  if (parent_)
+    return parent_->AppendVariable(var, result, err);
+
+  return true;
 }
 
 void BindingEnv::AddBinding(const string& key, const string& val) {
@@ -84,34 +90,45 @@ const map<string, const Rule*>& BindingEnv::GetRules() const {
   return rules_;
 }
 
-void BindingEnv::AppendWithFallback(const string& var,
+bool BindingEnv::AppendWithFallback(const string& var,
                                     const EvalString* eval,
                                     Env* env,
-                                    string* result) {
+                                    string* result,
+                                    string* err) {
   map<string, string>::iterator i = bindings_.find(var);
-  if (i != bindings_.end())
+  if (i != bindings_.end()) {
     result->append(i->second);
+    return true;
+  }
 
   else if (eval)
-    eval->EvalAppend(env, result);
+    return eval->EvalAppend(env, result, err);
 
   else if (parent_)
-    parent_->AppendVariable(var, result);
+    return parent_->AppendVariable(var, result, err);
+
+  return true;
 }
 
 string EvalString::Evaluate(Env* env) const {
   string result;
-  EvalAppend(env, &result);
+  string err;
+  EvalAppend(env, &result, &err);
   return result;
 }
 
-void EvalString::EvalAppend(Env* env, string* result) const {
+bool EvalString::EvalAppend(Env* env, string* result, string* err) const {
   for (TokenList::const_iterator i = parsed_.begin(); i != parsed_.end(); ++i) {
-    if (i->second == RAW)
+    if (i->second == RAW) {
       result->append(i->first);
-    else
-      env->AppendVariable(i->first, result);
+      continue;
+    }
+
+    if (!env->AppendVariable(i->first, result, err)) {
+      return false;
+    }
   }
+  return true;
 }
 
 void EvalString::AddText(StringPiece text) {

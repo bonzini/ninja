@@ -546,7 +546,8 @@ int NinjaMain::ToolTargets(const Options* options, int argc, char* argv[]) {
 }
 
 enum PrintCommandMode { PCM_Single, PCM_All };
-bool EvaluateCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
+bool EvaluateCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode,
+                      string* err) {
   if (!edge)
     return true;
   if (!seen->insert(edge).second)
@@ -555,13 +556,12 @@ bool EvaluateCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
   if (mode == PCM_All) {
     for (vector<Node*>::iterator in = edge->inputs_.begin();
          in != edge->inputs_.end(); ++in)
-      if (!EvaluateCommands((*in)->in_edge(), seen, mode))
+      if (!EvaluateCommands((*in)->in_edge(), seen, mode, err))
         return false;
   }
 
   if (!edge->is_phony())
-    edge->EvaluateCommand();
-
+    return edge->EvaluateCommand(err);
   return true;
 }
 
@@ -618,7 +618,10 @@ int NinjaMain::ToolCommands(const Options* options, int argc, char* argv[]) {
 
   set<Edge*> seen;
   for (vector<Node*>::iterator in = nodes.begin(); in != nodes.end(); ++in)
-    EvaluateCommands((*in)->in_edge(), &seen, mode);
+    if (!EvaluateCommands((*in)->in_edge(), &seen, mode, &err)) {
+      Error("%s", err.c_str());
+      return 1;
+    }
 
   seen.clear();
   for (vector<Node*>::iterator in = nodes.begin(); in != nodes.end(); ++in)
@@ -758,7 +761,11 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
 
   for (vector<Edge*>::iterator e = state_.edges_.begin();
        e != state_.edges_.end(); ++e) {
-    (*e)->EvaluateCommand();
+    string err;
+    if (!(*e)->EvaluateCommand(&err)) {
+      Error("cannot determine command: %s", err);
+      return 1;
+    }
   }
 
   putchar('[');

@@ -36,7 +36,9 @@ TEST(State, Basic) {
   state.AddIn(edge, "in2", 0);
   state.AddOut(edge, "out", 0);
 
-  edge->EvaluateCommand();
+  string err;
+  edge->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
   EXPECT_EQ("cat in1 in2 > out", edge->GetCommand());
 
   EXPECT_FALSE(state.GetNode("in1", 0)->dirty());

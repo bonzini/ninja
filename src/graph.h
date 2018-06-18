@@ -144,7 +144,7 @@ struct Edge {
   /// Return true if all inputs' in-edges are ready.
   bool AllInputsReady() const;
 
-  void EvaluateCommand();
+  bool EvaluateCommand(string* err);
   void ForgetCommand();
 
   /// Expand all variables in a command and return it as a string.

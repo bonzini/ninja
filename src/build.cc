@@ -731,7 +731,9 @@ bool Builder::StartEdge(Edge* edge, string* err) {
   if (edge->is_phony())
     return true;
 
-  edge->EvaluateCommand();
+  if (!edge->EvaluateCommand(err))
+    return false;
+
   status_->BuildEdgeStarted(edge);
 
   // Create directories necessary for outputs.

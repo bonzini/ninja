@@ -51,8 +51,10 @@ TEST_F(BuildLogTest, WriteRead) {
   string err;
   EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
-  state_.edges_[0]->EvaluateCommand();
-  state_.edges_[1]->EvaluateCommand();
+  state_.edges_[0]->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
+  state_.edges_[1]->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
   log1.RecordCommand(state_.edges_[0], 15, 18);
   log1.RecordCommand(state_.edges_[1], 20, 25);
   log1.Close();
@@ -129,8 +131,10 @@ TEST_F(BuildLogTest, Truncate) {
     string err;
     EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
-    state_.edges_[0]->EvaluateCommand();
-    state_.edges_[1]->EvaluateCommand();
+    state_.edges_[0]->EvaluateCommand(&err);
+    ASSERT_EQ("", err);
+    state_.edges_[1]->EvaluateCommand(&err);
+    ASSERT_EQ("", err);
     log1.RecordCommand(state_.edges_[0], 15, 18);
     log1.RecordCommand(state_.edges_[1], 20, 25);
     log1.Close();
@@ -147,8 +151,10 @@ TEST_F(BuildLogTest, Truncate) {
     string err;
     EXPECT_TRUE(log2.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
-    state_.edges_[0]->EvaluateCommand();
-    state_.edges_[1]->EvaluateCommand();
+    state_.edges_[0]->EvaluateCommand(&err);
+    ASSERT_EQ("", err);
+    state_.edges_[1]->EvaluateCommand(&err);
+    ASSERT_EQ("", err);
     log2.RecordCommand(state_.edges_[0], 15, 18);
     log2.RecordCommand(state_.edges_[1], 20, 25);
     log2.Close();
@@ -255,8 +261,10 @@ TEST_F(BuildLogTest, MultiTargetEdge) {
   AssertParse(&state_,
 "build out out.d: cat\n");
 
+  string err;
   BuildLog log;
-  state_.edges_[0]->EvaluateCommand();
+  state_.edges_[0]->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
   log.RecordCommand(state_.edges_[0], 21, 22);
 
   ASSERT_EQ(2u, log.entries().size());
@@ -285,8 +293,10 @@ TEST_F(BuildLogRecompactTest, Recompact) {
   string err;
   EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
-  state_.edges_[0]->EvaluateCommand();
-  state_.edges_[1]->EvaluateCommand();
+  state_.edges_[0]->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
+  state_.edges_[1]->EvaluateCommand(&err);
+  ASSERT_EQ("", err);
   // Record the same edge several times, to trigger recompaction
   // Record the same edge several times, to trigger recompaction
   // the next time the log is opened.

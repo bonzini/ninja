@@ -181,7 +181,13 @@ bool DependencyScan::VerifyDAG(Node* node, vector<Node*>* stack, string* err) {
 
 void DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
                                            bool* outputs_dirty) {
-  edge->EvaluateCommand();
+  string err;
+  if (!edge->EvaluateCommand(&err)) {
+    // If an input file is missing, consider the output dirty.
+    *outputs_dirty = true;
+    return;
+  }
+
   string command = edge->GetCommand(/*incl_rsp_file=*/true);
   for (vector<Node*>::iterator o = edge->outputs_.begin();
        o != edge->outputs_.end(); ++o) {
@@ -287,7 +293,7 @@ struct EdgeEnv : public Env {
 
   EdgeEnv(const Edge* edge, EscapeKind escape)
       : edge_(edge), escape_in_out_(escape), recursive_(false) {}
-  virtual void AppendVariable(const string& var, string* result);
+  virtual bool AppendVariable(const string& var, string* result, string* err);
 
   /// Given a span of Nodes, construct a list of paths suitable for a command
   /// line.
@@ -302,20 +308,20 @@ struct EdgeEnv : public Env {
   bool recursive_;
 };
 
-void EdgeEnv::AppendVariable(const string& var, string* result) {
+bool EdgeEnv::AppendVariable(const string& var, string* result, string* err) {
   if (var == "in" || var == "in_newline") {
     int explicit_deps_count = edge_->inputs_.size() - edge_->implicit_deps_ -
       edge_->order_only_deps_;
     AppendPathList(edge_->inputs_.begin(),
                    edge_->inputs_.begin() + explicit_deps_count,
                    var == "in" ? ' ' : '\n', result);
-    return;
+    return true;
   } else if (var == "out") {
     int explicit_outs_count = edge_->outputs_.size() - edge_->implicit_outs_;
     AppendPathList(edge_->outputs_.begin(),
                    edge_->outputs_.begin() + explicit_outs_count,
                    ' ', result);
-    return;
+    return true;
   }
 
   if (recursive_) {
@@ -337,7 +343,7 @@ void EdgeEnv::AppendVariable(const string& var, string* result) {
   // In practice, variables defined on rules never use another rule variable.
   // For performance, only start checking for cycles after the first lookup.
   recursive_ = true;
-  edge_->env_->AppendWithFallback(var, eval, this, result);
+  return edge_->env_->AppendWithFallback(var, eval, this, result, err);
 }
 
 void EdgeEnv::AppendPathList(vector<Node*>::const_iterator begin,
@@ -378,11 +384,21 @@ string Edge::GetRspFileContent() const {
   return *rspfile_content_;
 }
 
-void Edge::EvaluateCommand() {
+bool Edge::EvaluateCommand(string* err) {
   if (!command_) {
-    command_ = new string(GetBinding("command"));
-    rspfile_content_ = new string(GetBinding("rspfile_content"));
+    EdgeEnv env(this, EdgeEnv::kShellEscape);
+    command_ = new string();
+    if (!env.AppendVariable("command", command_, err)) {
+      ForgetCommand();
+      return false;
+    }
+    rspfile_content_ = new string();
+    if (!env.AppendVariable("rspfile_content", rspfile_content_, err)) {
+      ForgetCommand();
+      return false;
+    }
   }
+  return true;
 }
 
 void Edge::ForgetCommand() {
