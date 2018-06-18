@@ -559,7 +559,7 @@ void PrintCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
   }
 
   if (!edge->is_phony())
-    puts(edge->EvaluateCommand().c_str());
+    puts(edge->GetCommand().c_str());
 }
 
 int NinjaMain::ToolCommands(const Options* options, int argc, char* argv[]) {
@@ -667,7 +667,7 @@ enum EvaluateCommandMode {
   ECM_EXPAND_RSPFILE
 };
 string EvaluateCommandWithRspfile(Edge* edge, EvaluateCommandMode mode) {
-  string command = edge->EvaluateCommand();
+  string command = edge->GetCommand();
   if (mode == ECM_NORMAL)
     return command;
 

@@ -220,10 +220,10 @@ TEST_F(GraphTest, VarInOutPathEscaping) {
   Edge* edge = GetNode("a b")->in_edge();
 #if _WIN32
   EXPECT_EQ("cat no'space \"with space$\" \"no\\\"space2\" > \"a b\"",
-      edge->EvaluateCommand());
+      edge->GetCommand());
 #else
   EXPECT_EQ("cat 'no'\\''space' 'with space$' 'no\"space2' > 'a b'",
-      edge->EvaluateCommand());
+      edge->GetCommand());
 #endif
 }
 
@@ -278,7 +278,7 @@ TEST_F(GraphTest, RuleVariablesInScope) {
 "  command = depfile is $depfile\n"
 "build out: r in\n"));
   Edge* edge = GetNode("out")->in_edge();
-  EXPECT_EQ("depfile is x", edge->EvaluateCommand());
+  EXPECT_EQ("depfile is x", edge->GetBinding("command"));
 }
 
 // Check that build statements can override rule builtins like depfile.

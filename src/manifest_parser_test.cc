@@ -138,7 +138,7 @@ TEST_F(ParserTest, InNewline) {
             rule->GetBinding("command")->Serialize());
 
   Edge* edge = state.edges_[0];
-  EXPECT_EQ("cat in\nin2 > out", edge->EvaluateCommand());
+  EXPECT_EQ("cat in\nin2 > out", edge->GetBinding("command"));
 }
 
 TEST_F(ParserTest, Variables) {
@@ -158,12 +158,12 @@ TEST_F(ParserTest, Variables) {
   ASSERT_EQ(2u, state.edges_.size());
   Edge* edge = state.edges_[0];
   EXPECT_EQ("ld one-letter-test -pthread -under -o a b c",
-            edge->EvaluateCommand());
+            edge->GetBinding("command"));
   EXPECT_EQ("1/2", state.bindings_.LookupVariable("nested2"));
 
   edge = state.edges_[1];
   EXPECT_EQ("ld one-letter-test 1/2/3 -under -o supernested x",
-            edge->EvaluateCommand());
+            edge->GetBinding("command"));
 }
 
 TEST_F(ParserTest, VariableScope) {
@@ -179,8 +179,8 @@ TEST_F(ParserTest, VariableScope) {
 ));
 
   ASSERT_EQ(2u, state.edges_.size());
-  EXPECT_EQ("cmd baz a inner", state.edges_[0]->EvaluateCommand());
-  EXPECT_EQ("cmd bar b outer", state.edges_[1]->EvaluateCommand());
+  EXPECT_EQ("cmd baz a inner", state.edges_[0]->GetBinding("command"));
+  EXPECT_EQ("cmd bar b outer", state.edges_[1]->GetBinding("command"));
 }
 
 TEST_F(ParserTest, Continuation) {
@@ -224,9 +224,9 @@ TEST_F(ParserTest, Dollars) {
 ));
   EXPECT_EQ("$dollar", state.bindings_.LookupVariable("x"));
 #ifdef _WIN32
-  EXPECT_EQ("$dollarbar$baz$blah", state.edges_[0]->EvaluateCommand());
+  EXPECT_EQ("$dollarbar$baz$blah", state.edges_[0]->GetBinding("command"));
 #else
-  EXPECT_EQ("'$dollar'bar$baz$blah", state.edges_[0]->EvaluateCommand());
+  EXPECT_EQ("'$dollar'bar$baz$blah", state.edges_[0]->GetBinding("command"));
 #endif
 }
 
@@ -240,7 +240,7 @@ TEST_F(ParserTest, EscapeSpaces) {
   EXPECT_EQ(state.edges_[0]->outputs_[0]->path(), "foo bar");
   EXPECT_EQ(state.edges_[0]->inputs_[0]->path(), "$one");
   EXPECT_EQ(state.edges_[0]->inputs_[1]->path(), "two$ three");
-  EXPECT_EQ(state.edges_[0]->EvaluateCommand(), "something");
+  EXPECT_EQ(state.edges_[0]->GetBinding("command"), "something");
 }
 
 TEST_F(ParserTest, CanonicalizeFile) {
@@ -885,9 +885,9 @@ TEST_F(ParserTest, SubNinja) {
   EXPECT_TRUE(state.LookupNode("some_dir/inner"));
 
   ASSERT_EQ(3u, state.edges_.size());
-  EXPECT_EQ("varref outer", state.edges_[0]->EvaluateCommand());
-  EXPECT_EQ("varref inner", state.edges_[1]->EvaluateCommand());
-  EXPECT_EQ("varref outer", state.edges_[2]->EvaluateCommand());
+  EXPECT_EQ("varref outer", state.edges_[0]->GetBinding("command"));
+  EXPECT_EQ("varref inner", state.edges_[1]->GetBinding("command"));
+  EXPECT_EQ("varref outer", state.edges_[2]->GetBinding("command"));
 }
 
 TEST_F(ParserTest, MissingSubNinja) {

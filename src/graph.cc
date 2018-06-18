@@ -181,7 +181,7 @@ bool DependencyScan::VerifyDAG(Node* node, vector<Node*>* stack, string* err) {
 
 void DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
                                            bool* outputs_dirty) {
-  string command = edge->EvaluateCommand(/*incl_rsp_file=*/true);
+  string command = edge->GetCommand(/*incl_rsp_file=*/true);
   for (vector<Node*>::iterator o = edge->outputs_.begin();
        o != edge->outputs_.end(); ++o) {
     if (RecomputeOutputDirty(edge, most_recent_input, command, *o)) {
@@ -358,7 +358,7 @@ void EdgeEnv::AppendPathList(vector<Node*>::const_iterator begin,
   }
 }
 
-string Edge::EvaluateCommand(bool incl_rsp_file) const {
+string Edge::GetCommand(bool incl_rsp_file) const {
   string command = GetBinding("command");
   if (incl_rsp_file) {
     string rspfile_content = GetBinding("rspfile_content");

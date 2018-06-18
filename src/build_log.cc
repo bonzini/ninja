@@ -146,7 +146,7 @@ bool BuildLog::OpenForWrite(const string& path, const BuildLogUser& user,
 
 bool BuildLog::RecordCommand(Edge* edge, int start_time, int end_time,
                              TimeStamp mtime) {
-  string command = edge->EvaluateCommand(true);
+  string command = edge->GetCommand(true);
   uint64_t command_hash = LogEntry::HashCommand(command);
   for (vector<Node*>::iterator out = edge->outputs_.begin();
        out != edge->outputs_.end(); ++out) {

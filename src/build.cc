@@ -152,7 +152,7 @@ void BuildStatus::BuildEdgeFinished(Edge* edge,
       outputs += (*o)->path() + " ";
 
     printer_.PrintOnNewLine("FAILED: " + outputs + "\n");
-    printer_.PrintOnNewLine(edge->EvaluateCommand() + "\n");
+    printer_.PrintOnNewLine(edge->GetCommand() + "\n");
   }
 
   if (!output.empty()) {
@@ -536,7 +536,7 @@ bool RealCommandRunner::CanRunMore() {
 }
 
 bool RealCommandRunner::StartCommand(Edge* edge) {
-  string command = edge->EvaluateCommand();
+  string command = edge->GetCommand();
   Subprocess* subproc = subprocs_.Add(command, edge->use_console());
   if (!subproc)
     return false;
@@ -752,7 +752,7 @@ bool Builder::StartEdge(Edge* edge, string* err) {
 
   // start command computing and run it
   if (!command_runner_->StartCommand(edge)) {
-    err->assign("command '" + edge->EvaluateCommand() + "' failed.");
+    err->assign("command '" + edge->GetCommand() + "' failed.");
     return false;
   }
 
