@@ -283,19 +283,19 @@ bool Edge::AllInputsReady() const {
 struct EdgeEnv : public Env {
   enum EscapeKind { kShellEscape, kDoNotEscape };
 
-  EdgeEnv(Edge* edge, EscapeKind escape)
+  EdgeEnv(const Edge* edge, EscapeKind escape)
       : edge_(edge), escape_in_out_(escape), recursive_(false) {}
   virtual void AppendVariable(const string& var, string* result);
 
   /// Given a span of Nodes, construct a list of paths suitable for a command
   /// line.
-  void AppendPathList(vector<Node*>::iterator begin,
-                      vector<Node*>::iterator end,
-                      char sep, string* result);
+  void AppendPathList(vector<Node*>::const_iterator begin,
+                      vector<Node*>::const_iterator end,
+                      char sep, string* result) const;
 
  private:
   vector<string> lookups_;
-  Edge* edge_;
+  const Edge* edge_;
   EscapeKind escape_in_out_;
   bool recursive_;
 };
@@ -338,11 +338,11 @@ void EdgeEnv::AppendVariable(const string& var, string* result) {
   edge_->env_->AppendWithFallback(var, eval, this, result);
 }
 
-void EdgeEnv::AppendPathList(vector<Node*>::iterator begin,
-                             vector<Node*>::iterator end,
-                             char sep, string* result) {
+void EdgeEnv::AppendPathList(vector<Node*>::const_iterator begin,
+                             vector<Node*>::const_iterator end,
+                             char sep, string* result) const {
   bool first = true;
-  for (vector<Node*>::iterator i = begin; i != end; ++i, first = false) {
+  for (vector<Node*>::const_iterator i = begin; i != end; ++i, first = false) {
     if (!first)
       result->push_back(sep);
     const string& path = (*i)->PathDecanonicalized();
@@ -358,7 +358,7 @@ void EdgeEnv::AppendPathList(vector<Node*>::iterator begin,
   }
 }
 
-string Edge::EvaluateCommand(bool incl_rsp_file) {
+string Edge::EvaluateCommand(bool incl_rsp_file) const {
   string command = GetBinding("command");
   if (incl_rsp_file) {
     string rspfile_content = GetBinding("rspfile_content");
@@ -368,21 +368,21 @@ string Edge::EvaluateCommand(bool incl_rsp_file) {
   return command;
 }
 
-string Edge::GetBinding(const string& key) {
+string Edge::GetBinding(const string& key) const {
   EdgeEnv env(this, EdgeEnv::kShellEscape);
   return env.LookupVariable(key);
 }
 
-bool Edge::GetBindingBool(const string& key) {
+bool Edge::GetBindingBool(const string& key) const {
   return !GetBinding(key).empty();
 }
 
-string Edge::GetUnescapedDepfile() {
+string Edge::GetUnescapedDepfile() const {
   EdgeEnv env(this, EdgeEnv::kDoNotEscape);
   return env.LookupVariable("depfile");
 }
 
-string Edge::GetUnescapedRspfile() {
+string Edge::GetUnescapedRspfile() const {
   EdgeEnv env(this, EdgeEnv::kDoNotEscape);
   return env.LookupVariable("rspfile");
 }
