@@ -262,9 +262,8 @@ struct DependencyScan {
   bool RecomputeDirty(Node* node, string* err);
 
   /// Recompute whether any output of the edge is dirty, if so sets |*dirty|.
-  /// Returns false on failure.
-  bool RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
-                             bool* dirty, string* err);
+  void RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
+                             bool* dirty);
 
   BuildLog* build_log() const {
     return build_log_;

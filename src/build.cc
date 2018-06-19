@@ -473,10 +473,7 @@ bool Plan::CleanNode(DependencyScan* scan, Node* node, string* err) {
       // If the edge isn't dirty, clean the outputs and mark the edge as not
       // wanted.
       bool outputs_dirty = false;
-      if (!scan->RecomputeOutputsDirty(*oe, most_recent_input,
-                                       &outputs_dirty, err)) {
-        return false;
-      }
+      scan->RecomputeOutputsDirty(*oe, most_recent_input, &outputs_dirty);
       if (!outputs_dirty) {
         for (vector<Node*>::iterator o = (*oe)->outputs_.begin();
              o != (*oe)->outputs_.end(); ++o) {

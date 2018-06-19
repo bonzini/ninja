@@ -114,8 +114,7 @@ bool DependencyScan::RecomputeDirty(Node* node, vector<Node*>* stack,
   // We may also be dirty due to output state: missing outputs, out of
   // date outputs, etc.  Visit all outputs and determine whether they're dirty.
   if (!dirty)
-    if (!RecomputeOutputsDirty(edge, most_recent_input, &dirty, err))
-      return false;
+    RecomputeOutputsDirty(edge, most_recent_input, &dirty);
 
   // Finally, visit each output and update their dirty state if necessary.
   for (vector<Node*>::iterator o = edge->outputs_.begin();
@@ -180,17 +179,16 @@ bool DependencyScan::VerifyDAG(Node* node, vector<Node*>* stack, string* err) {
   return false;
 }
 
-bool DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
-                                           bool* outputs_dirty, string* err) {
+void DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
+                                           bool* outputs_dirty) {
   string command = edge->EvaluateCommand(/*incl_rsp_file=*/true);
   for (vector<Node*>::iterator o = edge->outputs_.begin();
        o != edge->outputs_.end(); ++o) {
     if (RecomputeOutputDirty(edge, most_recent_input, command, *o)) {
       *outputs_dirty = true;
-      return true;
+      break;
     }
   }
-  return true;
 }
 
 bool DependencyScan::RecomputeOutputDirty(Edge* edge,
