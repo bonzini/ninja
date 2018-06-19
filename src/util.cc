@@ -251,48 +251,75 @@ static inline bool StringNeedsWin32Escaping(const string& input) {
   return false;
 }
 
-void GetShellEscapedString(const string& input, string* result) {
+void GetShellEscapedString(const string& input, string* result, bool newline_to_space) {
   assert(result);
 
-  if (!StringNeedsShellEscaping(input)) {
+  if (!input.length()) {
+    return;
+  }
+  if (!newline_to_space && !StringNeedsShellEscaping(input)) {
     result->append(input);
     return;
   }
 
   const char kQuote = '\'';
   const char kEscapeSequence[] = "'\\'";
-
-  result->push_back(kQuote);
+  const char kNewline = '\n';
+  const char kSeparatorSequence[] = "' ";
+  bool first = true;
 
   string::const_iterator span_begin = input.begin();
   for (string::const_iterator it = input.begin(), end = input.end(); it != end;
        ++it) {
+    if (first) {
+      result->push_back(kQuote);
+      first = false;
+    }
     if (*it == kQuote) {
       result->append(span_begin, it);
       result->append(kEscapeSequence);
       span_begin = it;
     }
+    if (newline_to_space && *it == kNewline) {
+      result->append(span_begin, it);
+      result->append(kSeparatorSequence);
+      span_begin = it + 1;
+      first = true;
+    }
   }
-  result->append(span_begin, input.end());
-  result->push_back(kQuote);
+  if (!first) {
+    result->append(span_begin, input.end());
+    result->push_back(kQuote);
+  }
 }
 
 
-void GetWin32EscapedString(const string& input, string* result) {
+void GetWin32EscapedString(const string& input, string* result, bool newline_to_space) {
   assert(result);
-  if (!StringNeedsWin32Escaping(input)) {
+
+  if (!input.length()) {
+    return;
+  }
+  if (!newline_to_space && !StringNeedsWin32Escaping(input)) {
     result->append(input);
     return;
   }
 
   const char kQuote = '"';
   const char kBackslash = '\\';
+  const char kNewline = '\n';
+  const char kSeparatorSequence[] = "\" ";
+  bool first = true;
 
   result->push_back(kQuote);
   size_t consecutive_backslash_count = 0;
   string::const_iterator span_begin = input.begin();
   for (string::const_iterator it = input.begin(), end = input.end(); it != end;
        ++it) {
+    if (first) {
+      result->push_back(kQuote);
+      first = false;
+    }
     switch (*it) {
       case kBackslash:
         ++consecutive_backslash_count;
@@ -303,14 +330,26 @@ void GetWin32EscapedString(const string& input, string* result) {
         span_begin = it;
         consecutive_backslash_count = 0;
         break;
+      case kNewline:
+        consecutive_backslash_count = 0;
+        if (newline_to_space) {
+          result->append(span_begin, it);
+          result->append(consecutive_backslash_count, kBackslash);
+          result->append(kSeparatorSequence);
+          span_begin = it + 1;
+          first = true;
+        }
+        /* fallthrough */
       default:
         consecutive_backslash_count = 0;
         break;
     }
   }
-  result->append(span_begin, input.end());
-  result->append(consecutive_backslash_count, kBackslash);
-  result->push_back(kQuote);
+  if (!first) {
+    result->append(span_begin, input.end());
+    result->append(consecutive_backslash_count, kBackslash);
+    result->push_back(kQuote);
+  }
 }
 
 int ReadFile(const string& path, string* contents, string* err) {

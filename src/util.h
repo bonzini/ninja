@@ -51,8 +51,9 @@ bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
 /// Bash, or Win32's CommandLineToArgvW().
 /// Appends the string directly to |result| without modification if we can
 /// determine that it contains no problematic characters.
-void GetShellEscapedString(const string& input, string* result);
-void GetWin32EscapedString(const string& input, string* result);
+/// If newline_to_space is true, each newline starts a new command line argument.
+void GetShellEscapedString(const string& input, string* result, bool newline_to_space = false);
+void GetWin32EscapedString(const string& input, string* result, bool newline_to_space = false);
 
 /// Read a file to a string (in text mode: with CRLF conversion
 /// on Windows).
