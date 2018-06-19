@@ -136,15 +136,22 @@ struct Edge {
 
   Edge() : rule_(NULL), pool_(NULL), env_(NULL), mark_(VisitNone),
            outputs_ready_(false), deps_missing_(false),
+           command_(NULL), rspfile_content_(NULL),
            implicit_deps_(0), order_only_deps_(0), implicit_outs_(0) {}
+
+  virtual ~Edge();
 
   /// Return true if all inputs' in-edges are ready.
   bool AllInputsReady() const;
+
+  void EvaluateCommand();
+  void ForgetCommand();
 
   /// Expand all variables in a command and return it as a string.
   /// If incl_rsp_file is enabled, the string will also contain the
   /// full contents of a response file (if applicable)
   string GetCommand(bool incl_rsp_file = false) const;
+  string GetRspFileContent() const;
 
   /// Returns the shell-escaped value of |key|.
   string GetBinding(const string& key) const;
@@ -165,6 +172,10 @@ struct Edge {
   VisitMark mark_;
   bool outputs_ready_;
   bool deps_missing_;
+
+  // memoized version for logged variables
+  string* command_;
+  string* rspfile_content_;
 
   const Rule& rule() const { return *rule_; }
   Pool* pool() const { return pool_; }

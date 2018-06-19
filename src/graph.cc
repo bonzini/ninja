@@ -181,6 +181,7 @@ bool DependencyScan::VerifyDAG(Node* node, vector<Node*>* stack, string* err) {
 
 void DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
                                            bool* outputs_dirty) {
+  edge->EvaluateCommand();
   string command = edge->GetCommand(/*incl_rsp_file=*/true);
   for (vector<Node*>::iterator o = edge->outputs_.begin();
        o != edge->outputs_.end(); ++o) {
@@ -189,6 +190,7 @@ void DependencyScan::RecomputeOutputsDirty(Edge* edge, Node* most_recent_input,
       break;
     }
   }
+  edge->ForgetCommand();
 }
 
 bool DependencyScan::RecomputeOutputDirty(Edge* edge,
@@ -358,14 +360,36 @@ void EdgeEnv::AppendPathList(vector<Node*>::const_iterator begin,
   }
 }
 
+Edge::~Edge() {
+  delete command_;
+  delete rspfile_content_;
+}
+
 string Edge::GetCommand(bool incl_rsp_file) const {
-  string command = GetBinding("command");
+  string result(*command_);
   if (incl_rsp_file) {
-    string rspfile_content = GetBinding("rspfile_content");
-    if (!rspfile_content.empty())
-      command += ";rspfile=" + rspfile_content;
+    if (!rspfile_content_->empty())
+      result += ";rspfile=" + *rspfile_content_;
   }
-  return command;
+  return result;
+}
+
+string Edge::GetRspFileContent() const {
+  return *rspfile_content_;
+}
+
+void Edge::EvaluateCommand() {
+  if (!command_) {
+    command_ = new string(GetBinding("command"));
+    rspfile_content_ = new string(GetBinding("rspfile_content"));
+  }
+}
+
+void Edge::ForgetCommand() {
+  delete command_;
+  delete rspfile_content_;
+  command_ = NULL;
+  rspfile_content_ = NULL;
 }
 
 string Edge::GetBinding(const string& key) const {

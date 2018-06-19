@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "build_log.h"
+#include "graph.h"
 
 #include "util.h"
 #include "test.h"
@@ -50,6 +51,8 @@ TEST_F(BuildLogTest, WriteRead) {
   string err;
   EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
+  state_.edges_[0]->EvaluateCommand();
+  state_.edges_[1]->EvaluateCommand();
   log1.RecordCommand(state_.edges_[0], 15, 18);
   log1.RecordCommand(state_.edges_[1], 20, 25);
   log1.Close();
@@ -126,6 +129,8 @@ TEST_F(BuildLogTest, Truncate) {
     string err;
     EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
+    state_.edges_[0]->EvaluateCommand();
+    state_.edges_[1]->EvaluateCommand();
     log1.RecordCommand(state_.edges_[0], 15, 18);
     log1.RecordCommand(state_.edges_[1], 20, 25);
     log1.Close();
@@ -142,6 +147,8 @@ TEST_F(BuildLogTest, Truncate) {
     string err;
     EXPECT_TRUE(log2.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
+    state_.edges_[0]->EvaluateCommand();
+    state_.edges_[1]->EvaluateCommand();
     log2.RecordCommand(state_.edges_[0], 15, 18);
     log2.RecordCommand(state_.edges_[1], 20, 25);
     log2.Close();
@@ -249,6 +256,7 @@ TEST_F(BuildLogTest, MultiTargetEdge) {
 "build out out.d: cat\n");
 
   BuildLog log;
+  state_.edges_[0]->EvaluateCommand();
   log.RecordCommand(state_.edges_[0], 21, 22);
 
   ASSERT_EQ(2u, log.entries().size());
@@ -277,6 +285,9 @@ TEST_F(BuildLogRecompactTest, Recompact) {
   string err;
   EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
+  state_.edges_[0]->EvaluateCommand();
+  state_.edges_[1]->EvaluateCommand();
+  // Record the same edge several times, to trigger recompaction
   // Record the same edge several times, to trigger recompaction
   // the next time the log is opened.
   for (int i = 0; i < 200; ++i)

@@ -293,7 +293,7 @@ void BuildStatus::PrintStatus(Edge* edge, EdgeStatus status) {
 
   string to_print = edge->GetBinding("description");
   if (to_print.empty() || force_full_command)
-    to_print = edge->GetBinding("command");
+    to_print = edge->GetCommand();
 
   to_print = FormatProgressStatus(progress_status_format_, status) + to_print;
 
@@ -731,6 +731,7 @@ bool Builder::StartEdge(Edge* edge, string* err) {
   if (edge->is_phony())
     return true;
 
+  edge->EvaluateCommand();
   status_->BuildEdgeStarted(edge);
 
   // Create directories necessary for outputs.
@@ -745,7 +746,7 @@ bool Builder::StartEdge(Edge* edge, string* err) {
   // XXX: this may also block; do we care?
   string rspfile = edge->GetUnescapedRspfile();
   if (!rspfile.empty()) {
-    string content = edge->GetBinding("rspfile_content");
+    string content = edge->GetRspFileContent();
     if (!disk_interface_->WriteFile(rspfile, content))
       return false;
   }

@@ -546,6 +546,25 @@ int NinjaMain::ToolTargets(const Options* options, int argc, char* argv[]) {
 }
 
 enum PrintCommandMode { PCM_Single, PCM_All };
+bool EvaluateCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
+  if (!edge)
+    return true;
+  if (!seen->insert(edge).second)
+    return true;
+
+  if (mode == PCM_All) {
+    for (vector<Node*>::iterator in = edge->inputs_.begin();
+         in != edge->inputs_.end(); ++in)
+      if (!EvaluateCommands((*in)->in_edge(), seen, mode))
+        return false;
+  }
+
+  if (!edge->is_phony())
+    edge->EvaluateCommand();
+
+  return true;
+}
+
 void PrintCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
   if (!edge)
     return;
@@ -598,6 +617,10 @@ int NinjaMain::ToolCommands(const Options* options, int argc, char* argv[]) {
   }
 
   set<Edge*> seen;
+  for (vector<Node*>::iterator in = nodes.begin(); in != nodes.end(); ++in)
+    EvaluateCommands((*in)->in_edge(), &seen, mode);
+
+  seen.clear();
   for (vector<Node*>::iterator in = nodes.begin(); in != nodes.end(); ++in)
     PrintCommands((*in)->in_edge(), &seen, mode);
 
@@ -731,6 +754,11 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
   if (errno != 0 && errno != ERANGE) {
     Error("cannot determine working directory: %s", strerror(errno));
     return 1;
+  }
+
+  for (vector<Edge*>::iterator e = state_.edges_.begin();
+       e != state_.edges_.end(); ++e) {
+    (*e)->EvaluateCommand();
   }
 
   putchar('[');

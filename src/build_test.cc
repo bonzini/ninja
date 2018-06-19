@@ -920,6 +920,7 @@ TEST_F(BuildTest, OrderOnlyDeps) {
   EXPECT_TRUE(builder_.Build(&err));
   ASSERT_EQ("", err);
   ASSERT_EQ(1u, command_runner_.commands_ran_.size());
+  ASSERT_EQ("cc foo.c", edge->GetCommand());
 
   fs_.Tick();
 

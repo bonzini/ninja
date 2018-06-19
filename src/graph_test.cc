@@ -218,6 +218,7 @@ TEST_F(GraphTest, VarInOutPathEscaping) {
 "build a$ b: cat no'space with$ space$$ no\"space2\n"));
 
   Edge* edge = GetNode("a b")->in_edge();
+  edge->EvaluateCommand();
 #if _WIN32
   EXPECT_EQ("cat no'space \"with space$\" \"no\\\"space2\" > \"a b\"",
       edge->GetCommand());
